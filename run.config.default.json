@@ -1,0 +1,28 @@
+{
+    "args": {
+        "tenant": "c4b38220-e1e1-4063-8302-43771a169f32",
+        "subscription": "09951193-852c-44f6-a720-ccb1f897d1bd"
+    },
+    "shares": [
+        {
+            "location": "westus",
+            "rgName": "azure-westus-rg",
+            "storageAccountName": "scdavdwestus",
+            "skuName": "Standard_LRS",
+            "shareName": "profiles",
+            "smbElevatedContributor": "WVD Admins",
+            "smbContributor": "WVD Users",
+            "ntfsUsers": "WVD Users"
+        },
+        {
+            "location": "westus",
+            "rgName": "azure-westus-rg",
+            "storageAccountName": "scdm365westus",
+            "skuName": "Standard_LRS",
+            "shareName": "m365",
+            "smbElevatedContributor": "WVD Admins",
+            "smbContributor": "WVD Users",
+            "ntfsUsers": "WVD Users"
+        }
+    ]
+}

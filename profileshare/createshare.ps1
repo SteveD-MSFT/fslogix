@@ -11,7 +11,7 @@ Write-Debug "Resource Group: $rgName"
 # Login
 If (!(Get-AzContext)) {
     Write-Host "Please login to your Azure account"
-    Connect-AzAccount -Tenant $tenantID -Subscription $subID
+    Connect-AzAccount -Tenant $tenant -Subscription $sub
 }
 
 # Iterate over shares and configure
@@ -23,9 +23,12 @@ foreach ($share in $shares) {
     $storageRGName            = $share.rgName
     $storageSKU               = $share.skuName
     $storageShareName         = $share.shareName
+    $storageShareDomain       = $share.shareDomain
     $smbElevatedContributor   = $share.smbElevatedContributor
     $smbContributor           = $share.smbContributor #TODO
-    $ntfsUsers                = $share.$ntfsUsers
+    $ntfsUsers                = $share.ntfsUsers
+    $ntfsAdmins               = $share.ntfsAdmins
+    $adDomain                 = $share.adDomain
 
     Write-Host "-=== Creating Resource Group ===-"
     Get-AzResourceGroup -Name $storageRGName -ErrorVariable noRG -ErrorAction SilentlyContinue
@@ -44,7 +47,7 @@ foreach ($share in $shares) {
     }
     catch {
         Write-Host "Container Storage: (CREATING) $storageAccount storage account in $storagelocation."
-        New-AzStorageAccount -StorageAccountName $storageAccount -location $storagelocation -ResourceGroupName $storageRGName -SkuName $storageSKU -Verbose  
+        New-AzStorageAccount -StorageAccountName $storageAccount -location $storagelocation -ResourceGroupName $storageRGName -SkuName $storageSKU -EnableAzureActiveDirectoryDomainServicesForFile $true -Verbose  
     }
 
     
@@ -68,25 +71,76 @@ foreach ($share in $shares) {
     $id = $group.Id
     New-AzRoleAssignment -objectID $id -RoleDefinitionName "Storage File Data SMB Share Elevated Contributor" -Scope $scope
 
+    #SMB Contributor
+    $group = Get-AzAdGroup -searchstring $smbContributor
+    $id = $group.Id
+    New-AzRoleAssignment -objectID $id -RoleDefinitionName "Storage File Data SMB Share Contributor" -Scope $scope
+
     #NTFS Perms
 
     # Mount share
-    $saKey = (Get-AzStorageAccountKey -ResourceGroupName $storageRGName -AccountName $storageAccount)| Where-Object {$_.KeyName -eq "key1"}
+    #$saKey = (Get-AzStorageAccountKey -ResourceGroupName $storageRGName -AccountName $storageAccount).Value[0]
+    #(ConvertTo-SecureString -String $saKey -AsPlainText -Force)
+    $saKey = (ConvertTo-SecureString -String ((Get-AzStorageAccountKey -ResourceGroupName $storageRGName -AccountName $storageAccount).Value[0]) -AsPlainText -Force)
     $u = "Azure\" + $storageAccount
-    $p = ConvertTo-SecureString -String $saKey -AsPlainText -Force
-    $cred = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $u, $p
-    $root = "\\" + $storageAccount + "\" + $storageShareName
-    New-PSDrive -Name "P" -PSProvider FileSystem -Root $root -Credential $cred
+    Write-Debug "Storage Account user: $u"
+    Write-Debug "Storage Account key: $saKey"
+
+    $cred = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $u, $saKey
+    #$cred = New-Object System.Management.Automation.PSCredential -ArgumentList $u, (ConvertTo-SecureString -String $saKey -AsPlainText -Force)
+
+    $root = "\\" + $storageAccount + "." + $storageShareDomain + "\" + $storageShareName
+    Write-Debug "File share: $root"
+    
+    $mntName = "$storageAccount$storageShareName"
+    New-PSDrive -Name $mntName -PSProvider FileSystem -Root $root -Credential $cred
 
     # Set Perms
-    Write-Debug "-===== NTFS PERMS BEFORE CONFIG =====-"
-    Write-Debug (Get-Acl -Path $dir).Access | Format-Table -AutoSize
+    $path = $mntName + ":"
+    Write-Host "-===== NTFS PERMS BEFORE CONFIG =====-"
+    $acl = Get-Acl $path
+    $acl.Access | Format-Table -AutoSize
+
+    #Remove existing permissions
+    $acl.Access | %{$acl.RemoveAccessRule($_)} | Out-Null
+    
+    # Config CREATOR OWNER
+    $id = 'CREATOR OWNER'
+    $perms = 'Modify'
+    $inherit = 'ContainerInherit, ObjectInherit'
+    $propagation = 'None'
+
+    Write-Host "Setting share permissions for $id"
+    $AccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule($id, $perms, $inherit, $propagation, 'Allow')
+    $acl.SetAccessRule($AccessRule)
+
+    # Config ADMIN PERMS
+    $id = $adDomain + '\' + $ntfsAdmins
+    $perms = 'FullControl'
+    $inherit = 'ContainerInherit, ObjectInherit'
+    $propagation = 'None'
+
+    Write-Host "Setting share permissions for $id"
+    $AccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule($id, $perms, $inherit, $propagation, 'Allow')
+    $acl.SetAccessRule($AccessRule)
     
 
+    # Config User Perms
+    $id = $adDomain + '\' + $ntfsUsers
+    $perms = 'Modify'
+    $inherit = 'None'
+    $propagation = 'None'
 
-    Write-Debug "-===== NTFS PERMS AFTER CONFIG =====-"
-    Write-Debug (Get-Acl -Path $dir).Access | Format-Table -AutoSize
+    Write-Host "Setting share permissions for $id"
+    $AccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule($id, $perms, $inherit, $propagation, 'Allow')
+    $acl.SetAccessRule($AccessRule)
+
+    # Apply ACL
+    $acl | Set-Acl -Path $path
+
+    Write-Host "-===== NTFS PERMS AFTER CONFIG =====-"
+    (Get-Acl -Path $path).Access | Format-Table -AutoSize
 
     # Unmount
-    Remove-PSDrive -Name "P"
+    Remove-PSDrive -Name $mntName
 }

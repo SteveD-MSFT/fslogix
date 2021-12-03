@@ -69,12 +69,23 @@ foreach ($share in $shares) {
     #Elevated SMB Contributor
     $group = Get-AzAdGroup -searchstring $smbElevatedContributor
     $id = $group.Id
-    New-AzRoleAssignment -objectID $id -RoleDefinitionName "Storage File Data SMB Share Elevated Contributor" -Scope $scope
+
+    #get current roles
+    $roles = Get-AzRoleAssignment -objectID $id
+    
+    $newRole = "Storage File Data SMB Share Elevated Contributor"
+    if ($roles.RoleDefinitionName -notmatch $newRole) {
+        New-AzRoleAssignment -objectID $id -RoleDefinitionName $newRole -Scope $scope
+    }
 
     #SMB Contributor
     $group = Get-AzAdGroup -searchstring $smbContributor
     $id = $group.Id
-    New-AzRoleAssignment -objectID $id -RoleDefinitionName "Storage File Data SMB Share Contributor" -Scope $scope
+
+    $newRole = "Storage File Data SMB Share Contributor" 
+    if ($roles.RoleDefinitionName -notmatch $newRole) {
+        New-AzRoleAssignment -objectID $id -RoleDefinitionName $newRole -Scope $scope
+    }
 
     #NTFS Perms
 

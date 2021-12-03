@@ -55,6 +55,32 @@
             "adDomain": "stevedowns",
             "ntfsUsers": "WVD Users - All",
             "ntfsAdmins": "WVD Admins"
+        },
+        {
+            "location": "eastus",
+            "rgName": "azure-eastus-rg",
+            "storageAccountName": "scdeusavdaadj",
+            "skuName": "Standard_LRS",
+            "shareName": "profiles",
+            "shareDomain": "file.core.windows.net",
+            "smbElevatedContributor": "WVD Admins",
+            "smbContributor": "WVD Users",
+            "adDomain": "stevedowns",
+            "ntfsUsers": "WVD Users - All",
+            "ntfsAdmins": "WVD Admins"
+        },
+        {
+            "location": "eastus",
+            "rgName": "azure-eastus-rg",
+            "storageAccountName": "scdeusavdaadj",
+            "skuName": "Standard_LRS",
+            "shareName": "m365",
+            "shareDomain": "file.core.windows.net",
+            "smbElevatedContributor": "WVD Admins",
+            "smbContributor": "WVD Users",
+            "adDomain": "stevedowns",
+            "ntfsUsers": "WVD Users - All",
+            "ntfsAdmins": "WVD Admins"
         }
     ]
 }

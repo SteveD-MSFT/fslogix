@@ -1,13 +1,13 @@
-#Install-Module -Name Az.Storage -force
-#Install-Module -Name AzureAD -force
+Install-Module -Name Az.Storage -force
+Install-Module -Name AzureAD -force
 
 $resourceGroupName = "azure-eastus-rg"
-$storageAccountName = "scdeusavdaadj"
+$storageAccountName = "scdeusavdprofiles"
 
-If (!(Get-AzContext)) {
+#If (!(Get-AzContext)) {
   Write-Host "Please login to your Azure account"
-  Connect-AzAccount -Tenant $tenant -Subscription $sub
-}
+  Connect-AzAccount
+#}
 
 $Subscription =  $(Get-AzContext).Subscription.Id;
 $ApiVersion = '2021-04-01'

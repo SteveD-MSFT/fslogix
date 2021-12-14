@@ -5,82 +5,30 @@
     },
     "shares": [
         {
-            "location": "westus",
-            "rgName": "azure-westus-rg",
-            "storageAccountName": "scdavdwestus",
+            "location": "eastus",
+            "rgName": "azure-eastus-rg",
+            "storageAccountName": "scdeusavdprofiles",
             "skuName": "Standard_LRS",
             "shareName": "profiles",
             "shareDomain": "file.core.windows.net",
-            "smbElevatedContributor": "WVD Admins",
-            "smbContributor": "WVD Users",
+            "smbElevatedContributor": "AVD Admins",
+            "smbContributor": "AVD Users",
             "adDomain": "stevedowns",
-            "ntfsUsers": "WVD Users - All",
-            "ntfsAdmins": "WVD Admins"
+            "ntfsUsers": "AVD Users",
+            "ntfsAdmins": "AVD Admins"
         },
         {
-            "location": "westus",
-            "rgName": "azure-westus-rg",
-            "storageAccountName": "scdm365westus",
+            "location": "eastus",
+            "rgName": "azure-eastus-rg",
+            "storageAccountName": "scdeusavdm365",
             "skuName": "Standard_LRS",
             "shareName": "m365",
             "shareDomain": "file.core.windows.net",
-            "smbElevatedContributor": "WVD Admins",
-            "smbContributor": "WVD Users",
+            "smbElevatedContributor": "AVD Admins",
+            "smbContributor": "AVD Users",
             "adDomain": "stevedowns",
-            "ntfsUsers": "WVD Users - All",
-            "ntfsAdmins": "WVD Admins"
-        },
-        {
-            "location": "eastus",
-            "rgName": "azure-eastus-rg",
-            "storageAccountName": "scdavdeastus",
-            "skuName": "Standard_LRS",
-            "shareName": "profiles",
-            "shareDomain": "file.core.windows.net",
-            "smbElevatedContributor": "WVD Admins",
-            "smbContributor": "WVD Users",
-            "adDomain": "stevedowns",
-            "ntfsUsers": "WVD Users - All",
-            "ntfsAdmins": "WVD Admins"
-        },
-        {
-            "location": "eastus",
-            "rgName": "azure-eastus-rg",
-            "storageAccountName": "scdavdeastus",
-            "skuName": "Standard_LRS",
-            "shareName": "m365",
-            "shareDomain": "file.core.windows.net",
-            "smbElevatedContributor": "WVD Admins",
-            "smbContributor": "WVD Users",
-            "adDomain": "stevedowns",
-            "ntfsUsers": "WVD Users - All",
-            "ntfsAdmins": "WVD Admins"
-        },
-        {
-            "location": "eastus",
-            "rgName": "azure-eastus-rg",
-            "storageAccountName": "scdeusavdaadj",
-            "skuName": "Standard_LRS",
-            "shareName": "profiles",
-            "shareDomain": "file.core.windows.net",
-            "smbElevatedContributor": "WVD Admins",
-            "smbContributor": "WVD Users",
-            "adDomain": "stevedowns",
-            "ntfsUsers": "WVD Users - All",
-            "ntfsAdmins": "WVD Admins"
-        },
-        {
-            "location": "eastus",
-            "rgName": "azure-eastus-rg",
-            "storageAccountName": "scdeusavdaadj",
-            "skuName": "Standard_LRS",
-            "shareName": "m365",
-            "shareDomain": "file.core.windows.net",
-            "smbElevatedContributor": "WVD Admins",
-            "smbContributor": "WVD Users",
-            "adDomain": "stevedowns",
-            "ntfsUsers": "WVD Users - All",
-            "ntfsAdmins": "WVD Admins"
+            "ntfsUsers": "AVD Users",
+            "ntfsAdmins": "AVD Admins"
         }
     ]
 }

@@ -47,7 +47,8 @@ foreach ($share in $shares) {
     }
     catch {
         Write-Host "Container Storage: (CREATING) $storageAccount storage account in $storagelocation."
-        New-AzStorageAccount -StorageAccountName $storageAccount -location $storagelocation -ResourceGroupName $storageRGName -SkuName $storageSKU -EnableAzureActiveDirectoryDomainServicesForFile $true -Verbose  
+        #New-AzStorageAccount -StorageAccountName $storageAccount -location $storagelocation -ResourceGroupName $storageRGName -SkuName $storageSKU -EnableAzureActiveDirectoryDomainServicesForFile $true -Verbose  
+        New-AzStorageAccount -StorageAccountName $storageAccount -location $storagelocation -ResourceGroupName $storageRGName -SkuName $storageSKU -Verbose
     }
 
     

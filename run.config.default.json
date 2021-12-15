@@ -13,7 +13,7 @@
             "shareDomain": "file.core.windows.net",
             "smbElevatedContributor": "AVD Admins",
             "smbContributor": "AVD Users",
-            "adDomain": "stevedowns",
+            "adDomain": "stevedowns.contoso.com",
             "ntfsUsers": "AVD Users",
             "ntfsAdmins": "AVD Admins"
         },
@@ -26,7 +26,7 @@
             "shareDomain": "file.core.windows.net",
             "smbElevatedContributor": "AVD Admins",
             "smbContributor": "AVD Users",
-            "adDomain": "stevedowns",
+            "adDomain": "stevedowns.contoso.com",
             "ntfsUsers": "AVD Users",
             "ntfsAdmins": "AVD Admins"
         }

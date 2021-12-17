@@ -14,8 +14,8 @@
             "smbElevatedContributor": "AVD Admins",
             "smbContributor": "AVD Users",
             "adDomain": "stevedowns.contoso.com",
-            "ntfsUsers": "AVD Users",
-            "ntfsAdmins": "AVD Admins"
+            "ntfsUsers": "AVD Users - OnPrem",
+            "ntfsAdmins": "AVD Admins - OnPrem"
         },
         {
             "location": "eastus",
@@ -24,11 +24,11 @@
             "skuName": "Standard_LRS",
             "shareName": "m365",
             "shareDomain": "file.core.windows.net",
-            "smbElevatedContributor": "AVD Admins",
-            "smbContributor": "AVD Users",
+            "smbElevatedContributor": "AVD Admins - OnPrem",
+            "smbContributor": "AVD Users - OnPrem",
             "adDomain": "stevedowns.contoso.com",
-            "ntfsUsers": "AVD Users",
-            "ntfsAdmins": "AVD Admins"
+            "ntfsUsers": "AVD Users - OnPrem",
+            "ntfsAdmins": "AVD Admins - OnPrem"
         }
     ]
 }

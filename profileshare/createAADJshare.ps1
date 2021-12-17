@@ -166,5 +166,74 @@ foreach ($share in $shares) {
 
     #Connect-AzAccount
     Set-StorageAccountAadKerberosADProperties -ResourceGroupName $storageRGName -StorageAccountName $storageAccount
+
+    #NTFS Perms
+
+    # Mount share
+    #$saKey = (Get-AzStorageAccountKey -ResourceGroupName $storageRGName -AccountName $storageAccount).Value[0]
+    #(ConvertTo-SecureString -String $saKey -AsPlainText -Force)
+    $saKey = (ConvertTo-SecureString -String ((Get-AzStorageAccountKey -ResourceGroupName $storageRGName -AccountName $storageAccount).Value[0]) -AsPlainText -Force)
+    $u = "Azure\" + $storageAccount
+    Write-Debug "Storage Account user: $u"
+    Write-Debug "Storage Account key: $saKey"
+
+    $cred = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $u, $saKey
+    #$cred = New-Object System.Management.Automation.PSCredential -ArgumentList $u, (ConvertTo-SecureString -String $saKey -AsPlainText -Force)
+
+    $root = "\\" + $storageAccount + "." + $storageShareDomain + "\" + $storageShareName
+    Write-Debug "File share: $root"
+    
+    $mntName = "$storageAccount$storageShareName"
+    New-PSDrive -Name $mntName -PSProvider FileSystem -Root $root -Credential $cred
+
+    # Set Perms
+    $path = $mntName + ":"
+    Write-Host "-===== NTFS PERMS BEFORE CONFIG =====-"
+    $acl = Get-Acl $path
+    $acl.Access | Format-Table -AutoSize
+
+    #Remove existing permissions
+    $acl.Access | %{$acl.RemoveAccessRule($_)} | Out-Null
+    
+    # Config CREATOR OWNER
+    $id = 'CREATOR OWNER'
+    $perms = 'Modify'
+    $inherit = 'ContainerInherit, ObjectInherit'
+    $propagation = 'None'
+
+    Write-Host "Setting share permissions for $id"
+    $AccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule($id, $perms, $inherit, $propagation, 'Allow')
+    $acl.SetAccessRule($AccessRule)
+
+    # Config ADMIN PERMS
+    $id = $adDomain + '\' + $ntfsAdmins
+    $perms = 'FullControl'
+    $inherit = 'ContainerInherit, ObjectInherit'
+    $propagation = 'None'
+
+    Write-Host "Setting share permissions for $id"
+    $AccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule($id, $perms, $inherit, $propagation, 'Allow')
+    $acl.SetAccessRule($AccessRule)
+    
+
+    # Config User Perms
+    $id = $adDomain + '\' + $ntfsUsers
+    $perms = 'Modify'
+    $inherit = 'None'
+    $propagation = 'None'
+
+    Write-Host "Setting share permissions for $id"
+    $AccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule($id, $perms, $inherit, $propagation, 'Allow')
+    $acl.SetAccessRule($AccessRule)
+
+    # Apply ACL
+    $acl | Set-Acl -Path $path
+
+    Write-Host "-===== NTFS PERMS AFTER CONFIG =====-"
+    (Get-Acl -Path $path).Access | Format-Table -AutoSize
+
+    # Unmount
+    Remove-PSDrive -Name $mntName
+
 }
 

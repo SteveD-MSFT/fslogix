@@ -153,7 +153,7 @@ foreach ($share in $shares) {
     $scope = "/subscriptions/" + $sub + "/resourceGroups/" + $storageRGName + "/providers/Microsoft.Storage/storageAccounts/" + $storageAccount + "/fileServices/default/fileshares/" + $storageShareName
    
     #Elevated SMB Contributor
-    $group = Get-AzAdGroup -searchstring $smbElevatedContributor
+    $group = Get-AzAdGroup -DisplayName $smbElevatedContributor
     $id = $group.Id
 
     #get current roles
@@ -165,7 +165,7 @@ foreach ($share in $shares) {
     New-AzRoleAssignment -objectID $id -RoleDefinitionName $newRole -Scope $scope -ErrorAction SilentlyContinue
 
     #SMB Contributor
-    $group = Get-AzAdGroup -searchstring $smbContributor
+    $group = Get-AzAdGroup -DisplayName $smbContributor
     $id = $group.Id
 
     $newRole = "Storage File Data SMB Share Contributor" 

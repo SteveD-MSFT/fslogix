@@ -112,8 +112,6 @@ foreach ($share in $shares) {
     $ntfsAdmins               = $share.ntfsAdmins
     $adDomain                 = $share.adDomain
 
-
-
     Write-Host "-=== Creating Resource Group ===-"
     Get-AzResourceGroup -Name $storageRGName -ErrorVariable noRG -ErrorAction SilentlyContinue
     if ($noRG) {
@@ -147,6 +145,75 @@ foreach ($share in $shares) {
         New-AzRmStorageShare -StorageAccountName $storageAccount -name $storageShareName -ResourceGroupName $storageRGName
     }
 
+    # Config Azure AD Service principal
+
+    $ApiVersion = '2021-04-01'
+
+    $Uri = ('https://management.azure.com/subscriptions/{0}/resourceGroups/{1}/providers/Microsoft.Storage/storageAccounts/{2}?api-version={3}' -f $sub, $storageRGName, $storageAccount, $ApiVersion);
+    
+    $json = 
+       @{properties=@{azureFilesIdentityBasedAuthentication=@{directoryServiceOptions="AADKERB"}}};
+    $json = $json | ConvertTo-Json -Depth 99
+    
+    $token = $(Get-AzAccessToken).Token
+    $headers = @{ Authorization="Bearer $token" }
+    
+    try {
+        Invoke-RestMethod -Uri $Uri -ContentType 'application/json' -Method PATCH -Headers $Headers -Body $json;
+    } catch {
+        Write-Host $_.Exception.ToString()
+        Write-Error -Message "Caught exception setting Storage Account directoryServiceOptions=AADKERB: $_" -ErrorAction Stop
+    }
+    
+    #Generate kerb storage account key
+    New-AzStorageAccountKey -storageRGName $storageRGName -Name $storageAccount -KeyName kerb1 -ErrorAction Stop
+    
+    $kerbKey1 = Get-AzStorageAccountKey -storageRGName $storageRGName -Name $storageAccount -ListKerbKey | Where-Object { $_.KeyName -like "kerb1" }
+    $aadPasswordBuffer = [System.Linq.Enumerable]::Take([System.Convert]::FromBase64String($kerbKey1.Value), 32);
+    $password = "kk:" + [System.Convert]::ToBase64String($aadPasswordBuffer);
+    
+    Connect-AzureAD
+    $azureAdTenantDetail = Get-AzureADTenantDetail;
+    $azureAdTenantId = $azureAdTenantDetail.ObjectId
+    $azureAdPrimaryDomain = ($azureAdTenantDetail.VerifiedDomains | Where-Object {$_._Default -eq $true}).Name
+    
+    $servicePrincipalNames = New-Object string[] 3
+    $servicePrincipalNames[0] = 'HTTP/{0}.file.core.windows.net' -f $storageAccount
+    $servicePrincipalNames[1] = 'CIFS/{0}.file.core.windows.net' -f $storageAccount
+    $servicePrincipalNames[2] = 'HOST/{0}.file.core.windows.net' -f $storageAccount
+    
+    $application = New-AzureADApplication -DisplayName $storageAccount -IdentifierUris $servicePrincipalNames -GroupMembershipClaims "All";
+    
+    $servicePrincipal = New-AzureADServicePrincipal -AccountEnabled $true -AppId $application.AppId -ServicePrincipalType "Application";
+    
+    $Token = ([Microsoft.Open.Azure.AD.CommonLibrary.AzureSession]::AccessTokens['AccessToken']).AccessToken
+    $apiVersion = '1.6'
+    $Uri = ('https://graph.windows.net/{0}/{1}/{2}?api-version={3}' -f $azureAdPrimaryDomain, 'servicePrincipals', $servicePrincipal.ObjectId, $apiVersion)
+$json = @'
+{
+    "passwordCredentials": [
+    {
+    "customKeyIdentifier": null,
+    "endDate": "<STORAGEACCOUNTENDDATE>",
+    "value": "<STORAGEACCOUNTPASSWORD>",
+    "startDate": "<STORAGEACCOUNTSTARTDATE>"
+    }]
+}
+'@
+    $now = [DateTime]::UtcNow
+    $json = $json -replace "<STORAGEACCOUNTSTARTDATE>", $now.AddDays(-1).ToString("s")
+      $json = $json -replace "<STORAGEACCOUNTENDDATE>", $now.AddMonths(12).ToString("s")
+    $json = $json -replace "<STORAGEACCOUNTPASSWORD>", $password
+    $Headers = @{'authorization' = "Bearer $($Token)"}
+    try {
+      Invoke-RestMethod -Uri $Uri -ContentType 'application/json' -Method Patch -Headers $Headers -Body $json 
+      Write-Host "Success: Password is set for $storageAccount"
+    } catch {
+      Write-Host $_.Exception.ToString()
+      Write-Host "StatusCode: " $_.Exception.Response.StatusCode.value
+      Write-Host "StatusDescription: " $_.Exception.Response.StatusDescription
+    }   
+
     #Share Permissions
     Write-Host "-===== ASSIGN: AZURE AD ROLES =====-"
     #Constrain the scope to the target file share
@@ -176,9 +243,6 @@ foreach ($share in $shares) {
 
     #NTFS Perms
     Write-Host "-===== CONFIG: NTFS =====-"
-    # Mount share
-    #$saKey = (Get-AzStorageAccountKey -ResourceGroupName $storageRGName -AccountName $storageAccount).Value[0]
-    #(ConvertTo-SecureString -String $saKey -AsPlainText -Force)
     $saKey = (ConvertTo-SecureString -String ((Get-AzStorageAccountKey -ResourceGroupName $storageRGName -AccountName $storageAccount).Value[0]) -AsPlainText -Force)
     $u = "Azure\" + $storageAccount
     Write-Host "Storage Account user: $u"
@@ -219,7 +283,6 @@ foreach ($share in $shares) {
     Write-Host "Setting share permissions for $id"
     $AccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule($id, $perms, $inherit, $propagation, 'Allow')
     $acl.SetAccessRule($AccessRule)
-    
 
     # Config User Perms
     $id = $adDomain + '\' + $ntfsUsers

@@ -1,4 +1,4 @@
-    #NTFS Perms
+#NTFS Perms
     Write-Host "-===== CONFIG: NTFS =====-"
     $saKey = (ConvertTo-SecureString -String ((Get-AzStorageAccountKey -ResourceGroupName $storageRGName -AccountName $storageAccount).Value[0]) -AsPlainText -Force)
     $u = "Azure\" + $storageAccount
@@ -40,7 +40,6 @@
     Write-Host "Setting share permissions for $id"
     $AccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule($id, $perms, $inherit, $propagation, 'Allow')
     $acl.SetAccessRule($AccessRule)
-    
 
     # Config User Perms
     $id = $adDomain + '\' + $ntfsUsers

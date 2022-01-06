@@ -1,5 +1,5 @@
-#$resourceGroupName = "azure-eastus-rg"
-#$storageAccountName = "scdeusavdprofiles"
+Install-Module -Name Az -Force
+Install-Module -Name AzureAD -Force
 
 function Set-StorageAccountAadKerberosADProperties {
     [CmdletBinding()]
@@ -166,9 +166,9 @@ foreach ($share in $shares) {
     }
     
     #Generate kerb storage account key
-    New-AzStorageAccountKey -storageRGName $storageRGName -Name $storageAccount -KeyName kerb1 -ErrorAction Stop
+    New-AzStorageAccountKey -Name $storageRGName -Name $storageAccount -KeyName kerb1 -ErrorAction Stop
     
-    $kerbKey1 = Get-AzStorageAccountKey -storageRGName $storageRGName -Name $storageAccount -ListKerbKey | Where-Object { $_.KeyName -like "kerb1" }
+    $kerbKey1 = Get-AzStorageAccountKey -Name $storageRGName -Name $storageAccount -ListKerbKey | Where-Object { $_.KeyName -like "kerb1" }
     $aadPasswordBuffer = [System.Linq.Enumerable]::Take([System.Convert]::FromBase64String($kerbKey1.Value), 32);
     $password = "kk:" + [System.Convert]::ToBase64String($aadPasswordBuffer);
     
@@ -241,67 +241,7 @@ $json = @'
 
     Set-StorageAccountAadKerberosADProperties -ResourceGroupName $storageRGName -StorageAccountName $storageAccount
 
-    #NTFS Perms
-    Write-Host "-===== CONFIG: NTFS =====-"
-    $saKey = (ConvertTo-SecureString -String ((Get-AzStorageAccountKey -ResourceGroupName $storageRGName -AccountName $storageAccount).Value[0]) -AsPlainText -Force)
-    $u = "Azure\" + $storageAccount
-    Write-Host "Storage Account user: $u"
-    Write-Host "Storage Account key: $saKey"
-
-    $cred = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $u, $saKey
-    $root = "\\" + $storageAccount + "." + $storageShareDomain + "\" + $storageShareName
-    Write-Host "File share: $root"
     
-    $mntName = "$storageAccount$storageShareName"
-    New-PSDrive -Name $mntName -PSProvider FileSystem -Root $root -Credential $cred
-
-    # Set Perms
-    $path = $mntName + ":"
-    Write-Host "-===== NTFS PERMS BEFORE CONFIG =====-"
-    $acl = Get-Acl $path
-    $acl.Access | Format-Table -AutoSize
-
-    #Remove existing permissions
-    $acl.Access | %{$acl.RemoveAccessRule($_)} | Out-Null
-    
-    # Config CREATOR OWNER
-    $id = 'CREATOR OWNER'
-    $perms = 'Modify'
-    $inherit = 'ContainerInherit, ObjectInherit'
-    $propagation = 'None'
-
-    Write-Host "Setting share permissions for $id"
-    $AccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule($id, $perms, $inherit, $propagation, 'Allow')
-    $acl.SetAccessRule($AccessRule)
-
-    # Config ADMIN PERMS
-    $id = $adDomain + '\' + $ntfsAdmins
-    $perms = 'FullControl'
-    $inherit = 'ContainerInherit, ObjectInherit'
-    $propagation = 'None'
-
-    Write-Host "Setting share permissions for $id"
-    $AccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule($id, $perms, $inherit, $propagation, 'Allow')
-    $acl.SetAccessRule($AccessRule)
-
-    # Config User Perms
-    $id = $adDomain + '\' + $ntfsUsers
-    $perms = 'Modify'
-    $inherit = 'None'
-    $propagation = 'None'
-
-    Write-Host "Setting share permissions for $id"
-    $AccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule($id, $perms, $inherit, $propagation, 'Allow')
-    $acl.SetAccessRule($AccessRule)
-
-    # Apply ACL
-    $acl | Set-Acl -Path $path
-
-    Write-Host "-===== NTFS PERMS AFTER CONFIG =====-"
-    (Get-Acl -Path $path).Access | Format-Table -AutoSize
-
-    # Unmount
-    Remove-PSDrive -Name $mntName
 
 }
 
